@@ -1,0 +1,452 @@
+version: 3
+
+env:
+  NEEDED_DISK_SPACE_GB: 50
+  LOGLEVEL: info
+
+vars:
+  HELM_PROD_REPO_NAME: nexus-prod
+  HELM_PROD_REPO_URL: https://nexus.north.io/repository/helm-prod/
+  MINIKUBE_VERSION: v1.31.2
+  KUBECTL_VERSION: "v1.30.1"
+  HELM_VERSION: "v3.15.1"
+  K9S_VERSION: "v0.32.4"
+  JQ_VERSION: "1.7.1"
+  MKCERT_VERSION: "v1.4.4"
+
+  ### ---- APP Default Version ---
+  NEOON_VERISON: "0.3.2"
+
+tasks:
+  requried-packages:install:
+    run: once
+    desc: Run this task to check if all the required tools are installed
+    silent: true
+    deps:
+      - task: install:minikube
+      - task: install:jq
+      - task: install:kubectl
+      - task: install:helm
+      - task: install:k9s
+      - task: install:mkcert
+
+  requried-packages:check:
+    run: once
+    desc: Run this task to check if all the required tools are installed            
+    silent: true
+    cmds:
+      ## if minikube is istalled then show a version else exit 1
+      - minikube version || exit 1
+      - kubectl version --client || exit 1
+      - helm version || exit 1
+      - k9s version || exit 1
+      - jq --version || exit 1
+      ## check free disk space. Should be more than $NEEDED_DISK_SPACE
+      - |
+        threshold_kbytes=$((${NEEDED_DISK_SPACE_GB} * 1024 * 1024))
+        echo "Threshold: ${threshold_kbytes} kbytes"
+        free_space_bytes=$(df --output=avail / | tail -n 1)
+        echo "Free space: ${free_space_bytes} kbytes"
+        if (( free_space_bytes > threshold_kbytes )); then
+            echo "Free disk space is greater than ${NEEDED_DISK_SPACE_GB} GB"
+        else
+            echo "Free disk space is LESS than or equal to NEEDED_DISK_SPACE_GB:${NEEDED_DISK_SPACE_GB} GB."
+            exit 1
+        fi
+
+  ## --------------- INSTALL packages ----------------
+  ## 1. install minikube from github
+  install:minikube:
+    desc: Install minikube
+    internal: true
+    vars:
+      version: '{{.MINIKUBE_VERSION | default "v1.31.2"}}' 
+    deps:
+      - task: check:wget    
+    cmds: 
+      - cd /tmp
+      - wget https://storage.googleapis.com/minikube/releases/{{.version}}/minikube-linux-amd64 -O minikube
+      - chmod +x minikube
+      - sudo mv --force minikube /usr/local/bin/
+      - minikube version
+      - rm -rf minikube
+
+  ## 2. install kubectl
+  install:kubectl:
+    desc: Install kubectl
+    internal: true
+    vars:
+      version: '{{.KUBECTL_VERSION | default "v1.30.1"}}' 
+    deps:
+      - task: check:wget    
+    cmds:
+      - cd /tmp
+      - wget https://dl.k8s.io/release/{{.version}}/bin/linux/amd64/kubectl
+      - chmod +x kubectl
+      - sudo mv --force kubectl /usr/local/bin/
+      - kubectl version --client
+      - rm -rf kubectl
+
+
+## 3. install helm
+  install:helm:
+    desc: Install helm
+    internal: true
+    vars:
+      version: '{{.HELM_VERSION | default "v3.15.1"}}' 
+    deps:
+      - task: check:wget
+      - task: check:tar
+    cmds:
+      - cd /tmp
+      - wget https://get.helm.sh/helm-{{.version}}-linux-amd64.tar.gz -O helm-linux-amd64.tar.gz
+      - tar -zxvf helm-linux-amd64.tar.gz
+      - sudo mv --force linux-amd64/helm /usr/local/bin/
+      - helm version
+      - rm -rf linux-amd64 helm-linux-amd64.tar.gz
+
+
+## 4. install k9s from github https://github.com/derailed/k9s/releases/download/v0.32.4/k9s_Linux_amd64.tar.gz
+  install:k9s:
+    desc: Install k9s
+    internal: true  
+    vars:
+      version: '{{.K9S_VERSION | default "v0.32.4"}}' 
+    deps:
+      - task: check:wget
+      - task: check:tar
+    cmds:
+      - cd /tmp
+      - wget https://github.com/derailed/k9s/releases/download/{{.version}}/k9s_Linux_amd64.tar.gz -O k9s_Linux_amd64.tar.gz
+      - tar -zxvf k9s_Linux_amd64.tar.gz
+      - sudo mv k9s /usr/local/bin/
+      - k9s version
+      - rm -rf k9s_Linux_amd64.tar.gz
+  
+  ## 5. install jq
+  install:jq:
+    desc: Install jq
+    internal: true
+    vars:
+      version: '{{.JQ_VERSION | default "1.7.1"}}'     
+    deps:
+      - task: check:wget
+    cmds:
+      - cd /tmp
+      - wget https://github.com/jqlang/jq/releases/download/jq-{{.version}}/jq-linux-amd64 -O jq
+      - chmod +x jq
+      - sudo mv --force jq /usr/bin
+      - jq --version
+
+  ## 6. install mkcert
+  install:mkcert:
+    desc: Install mkcert
+    internal: true
+    vars:
+      version: '{{.MKCERT_VERSION | default "v1.4.4"}}'
+    deps:
+      - task: check:wget
+    cmds:
+      - cd /tmp
+      - wget https://github.com/FiloSottile/mkcert/releases/download/{{ .version }}/mkcert-{{ .version }}-linux-amd64 -O mkcert
+      - chmod +x mkcert
+      - sudo mv --force mkcert /usr/local/bin/
+
+
+##-----------------------  CHECKs  internal -----------------------------
+  check:minikube:
+    desc: Check minikube status
+    internal: true
+    preconditions:
+      - sh: command -v minikube
+        msg: "'minikube' must be installed"
+
+  check:minikube-running:
+    desc: Check minikube exists and running
+    internal: true
+    deps:
+      - task: check:minikube
+    preconditions:
+      - sh: minikube status | grep -c "Running"
+        msg: "'minikube' must be running"
+
+  check:tar:
+    desc: Check tar status
+    internal: true
+    preconditions:
+      - sh: command -v tar
+        msg: "'tar' must be installed"
+
+  check:wget:
+    desc: Check wget status
+    internal: true
+    preconditions:
+      - sh: command -v wget
+        msg: "'wget' must be installed"
+
+  check:helm:
+    desc: Check helm status
+    internal: true
+    preconditions:
+      - sh: command -v helm
+        msg: "'helm' must be installed"
+
+##--------------------------- MINIKUBE -------------------------
+  minikube:start:
+    aliases:
+      - "minikube:up"
+      - "minikube:run"
+    desc: Start minikube
+    deps:
+      - task: check:minikube
+    cmds:
+      - |
+        if [[ $(minikube status | grep -c "Running") -eq 0 ]]; then 
+          minikube start --driver=docker {{.MINIKUBE_START_OPTIONS}}; 
+        fi    
+      - minikube status
+      - chmod +x ./scripts/portforward.sh
+      - bash ./scripts/portforward.sh
+    vars:
+      MINIKUBE_START_OPTIONS: "--cpus 8 --memory 8192 --nodes 1 --disk-size 50g --kubernetes-version=v1.27.5 --addons=ingress --addons=metrics-server --wait-timeout=6m0s  --install-addons=true"
+  ## --image-repository='docker-base.north.io'  but needs to provide a credentials
+
+  minikube:stop:
+    desc: Stop minikube
+    deps:
+      - task: check:minikube-running
+    cmds:
+      - minikube stop
+
+  minikube:delete:
+    desc: Delete minikube
+    deps:
+      - task: check:minikube
+    cmds:    
+      - minikube delete
+
+### ================================================ APPLICATION ================================================
+  neoon:mini:run:
+    aliases: 
+      - "neoon:mini:install"
+    desc : Run Neoon product locally in minikube
+    summary: |
+      SYNOPSIS:
+          <args>  task {{.TASK}}
+
+      ENVIRONMENT VARIABLES:
+          Domain=<URL>         Custom URL to run, defaults to https://neoon.local/local
+          EnvID=<EnvID>        Environment ID, default 'local'
+          Tenant=<Tenant>      Tenant, default 'local'
+          Version=<Version>    Version of the product to run, default '0.2.2'
+
+      ARGS:
+          --dry-run            Dry run the task
+
+      EXAMPLES:
+          # To deploy local deployment with default tenant
+          $ task neoon:mini:run
+
+          # To deploy local deployment with custom tenant and version
+          $ Version="0.0.28" task neoon:mini:run
+    cmds:
+      - task: _product:mini:action
+        vars:
+          Product: neoon
+          Action: install
+          ExtraArgs: "{{.CLI_ARGS}}"
+
+  neoon:mini:delete:
+    desc : Delete Neoon product locally from minikube
+    summary: "{{.neoon_summary}}"
+    cmds:
+      - task: _product:mini:action
+        vars:
+          Product: neoon
+          Action: delete
+          ExtraArgs: "{{.CLI_ARGS}}"
+
+  neoon:mini:recreate:
+    desc : Recreate Neoon product locally from minikube
+    summary: "{{.neoon_summary}}"
+    cmds:
+      - task: _product:mini:action
+        vars:
+          Product: neoon
+          Action: recreate
+          ExtraArgs: "{{.CLI_ARGS}}"
+
+  neoon:mini:update:
+    desc : Update Neoon product locally from minikube
+    summary: "{{.neoon_summary}}"
+    cmds:
+      - task: _product:mini:action
+        vars:
+          Product: neoon
+          Action: update
+          ExtraArgs: "{{.CLI_ARGS}}"
+
+
+  neoon:mini:from-scratch:
+    desc: Install Neoon product from scratch with all the necessary infrastructure
+    summary: |
+      SYNOPSIS:
+          <args>  task {{.TASK}}
+
+      ENVIRONMENT VARIABLES:
+        Required:
+          NEXUS_USERNAME=<username>  Username to access the nexus repository
+          NEXUS_PASSWORD=<password>  Password to access the nexus repository
+        Optional:
+          Domain=<URL>         Custom URL to run, defaults to https://neoon.local/local
+          EnvID=<EnvID>        Environment ID, default 'local'
+          Tenant=<Tenant>      Tenant, default 'local'
+          Version=<Version>    Version of the product to run, default '0.2.2'
+
+      EXAMPLES:
+          $ NEXUS_USERNAME=user NEXUS_PASSWORD=test Version="0.0.28" task {{.TASK}}
+    silent: true
+    vars:
+      NEXUS_USERNAME: '{{ env "NEXUS_USERNAME" }}'
+      NEXUS_PASSWORD: '{{ env "NEXUS_PASSWORD" }}'
+    cmds:
+      - task: requried-packages:install
+      - task: minikube:start
+      - task: infra:mini:install
+      - task: neoon:mini:run
+        # vars:
+        #   CLI_ARGS: "{{.CLI_ARGS}}"
+    preconditions:
+    ## check envs NEXUS_USERNAME and NEXUS_PASSWORD 
+      - sh: test -n "${NEXUS_USERNAME}" && test -n "${NEXUS_PASSWORD}"
+        msg: "NEXUS_USERNAME and NEXUS_PASSWORD must be set"
+
+
+  _product:mini:action:
+    internal: true
+    desc: Run the specified product locally in minikube
+    vars:
+      Domain: '{{ env "Domain" | default "https://neoon.local" }}'
+      EnvID: '{{ env "EnvID" | default "local" }}'
+      Tenant: '{{ env "Tenant" | default "local" }}'
+      Version: '{{ env "Version" | default "0.2.2" }}'
+      HelmRepoName: '{{.HELM_PROD_REPO_NAME}}'  
+      ExtraArgs: '{{.ExtraArgs}}'  
+    # silent: true
+    requires:
+      vars:
+        - Action
+        - Product
+    deps:
+      - task: requried-packages:check
+        silent: true
+      - task: check:minikube-running    
+        silent: true
+    silent: true
+    cmds:
+      - |
+        if [[ "{{.ExtraArgs}}" =~ "--dry-run" ]]; then
+          echo -e "\t\t\t-----DRY RUN:----- \n Product {{.Product}}\n Domain {{.Domain}}\n EnvID {{.EnvID}}\n Tenant {{.Tenant}}\n Version {{.Version}}\n Action {{.Action}}"
+         exit 1
+        fi
+      - task: _:mini:action
+        vars:
+          Product: "{{.Product}}"
+          Domain: "{{.Domain}}"
+          EnvID: "{{.EnvID}}"
+          Tenant: "{{.Tenant}}"
+          Version: "{{.Version}}"
+          HelmRepoName: "{{.HELM_PROD_REPO_NAME}}"
+          Action: "{{.Action}}"
+
+
+
+  _:mini:action:
+    internal: true
+    desc: Run the specified product locally in minikube
+    requires:
+      vars:
+        - Product
+        - Domain
+        - EnvID
+        - Tenant
+        - Version
+        - Action
+    cmds:
+      - chmod +x  ./scripts/manage-app.sh 
+      - >
+        ./scripts/manage-app.sh 
+        --command {{.Action}} 
+        --product {{.Product}} 
+        --domain {{.Domain}} 
+        --envID {{.EnvID}} 
+        --tenant {{.Tenant}} 
+        --version {{.Version}}
+
+
+ ### ================================================ INFRASTRUCTURE ================================================
+  infra:mini:install:
+    desc: Install all the necessary infrastructure for Neoon product in MiniKube
+    summary: |
+      This task will install the necessary infrastructure
+        - reflector
+        - keycloak operator
+        - postgres operator
+        - redis operator
+        - added dockerconfig secret
+
+      SYNOPSIS:      
+          task {{.TASK}} -- <args>
+      ARGS:
+        Required:
+            --username <string> 
+            --password <string>
+        Optional:
+            --keycloak-chart-version <string>. Example: 0.0.1
+            --helm-nexus-repo-install                             (default: true)
+            --helm-nexus-repo-name  <string>
+            --helm-nexus-repo_url <string>        
+            --helm-nexus-repo-username <string>
+            --helm-nexus-repo-password
+            --keycloak-operator-chart-version <string>
+            --redis-operator-chart-version <string>
+            --postgres-operator-chart-version <string>
+            --loglevel (debug|info|warning|critical). Default: info
+
+      EXAMPLES:
+          # To install all the necessary infrastructure
+          $ task {{.TASK}} -- --username test --password test
+    cmds:
+      # - echo -e "{{.CLI_ARGS}} --helm-nexus-repo-install"
+      - task: _:mini:infra:install
+        vars:
+          args: "{{.ARGS | default .CLI_ARGS}} --helm-nexus-repo-install --loglevel ${LOGLEVEL:-info}"
+      #     args: "{{.ARGS | default .CLI_ARGS}} --helm-nexus-repo-install"
+
+  _:mini:infra:install:
+    internal: true
+    desc: Install the necessary infrastructure for product application
+    requires:
+      vars:
+        - args
+    silent: true
+    deps:
+      - task: requried-packages:check
+        silent: true
+      - task: check:minikube-running
+        silent: true
+    cmds:
+      - |
+        if [[ -n "${NEXUS_USERNAME}" && -n "${NEXUS_PASSWORD}" ]]; then
+          echo "WARNING! Enviroment variables NEXUS_USERNAME and NEXUS_PASSWORD is set and will be used!"
+          sleep 10
+          ./scripts/install-infra.sh --username ${NEXUS_USERNAME} --password ${NEXUS_PASSWORD} {{.args}}
+        else
+          ./scripts/install-infra.sh {{.args}}
+        fi
+    preconditions:
+    ## check if file exists and executable
+      - sh: test -x ./scripts/install-infra.sh
+        msg: "File ./scripts/install-infra.sh does not exist or is not executable"
+      - chmod +x  ./scripts/install-infra.sh
+

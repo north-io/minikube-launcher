@@ -1,0 +1,176 @@
+global:
+  envId: local
+  cluster: minikube
+  repository: docker-prod.north.io
+
+  ingHost: neoon.local
+
+  fconvResources:
+    limits:
+      cpu: 2
+      memory: 2Gi
+    requests:
+      cpu: 1m
+      memory: 512Mi
+  gdalResources:
+    limits:
+      cpu: 2
+      memory: 2Gi
+    requests:
+      cpu: 1m
+      memory: 512Mi
+  gdalbindingsResources:
+    limits:
+      cpu: 2
+      memory: 2Gi
+    requests:
+      cpu: 1m
+      memory: 512Mi
+  pdalResources:
+    limits:
+      cpu: 2
+      memory: 2Gi
+    requests:
+      cpu: 1m
+      memory: 512Mi
+  fileprocResources:
+    limits:
+      cpu: 2
+      memory: 2Gi
+    requests:
+      cpu: 1m
+      memory: 512Mi
+  geoindexResources:
+    limits:
+      cpu: 2
+      memory: 2Gi
+    requests:
+      cpu: 1m
+      memory: 512Mi
+  graphicmagicResources:
+    limits:
+      cpu: 2
+      memory: 2Gi
+    requests:
+      cpu: 1m
+      memory: 512Mi
+
+
+  persistence:
+    enabled: true
+    postgres:
+      DbStorageClass: "standard"
+      pvc_size: 1Gi
+    volume:
+      claim:
+        enabled: true
+        name: "pvc0001"
+        storageRequest: 30Gi
+    storageClass: "standard"
+    redis:
+      storageClassName: "standard"
+      pvc_size: 1Gi
+    inspireValidator:
+      pvc_size: 5Gi
+    
+  featureFlags:
+    wmsUnifyAvalible: false
+    zeusConvertDigitalEarthActivated: true
+
+  backup:
+    enabled: false
+
+  redis:
+    # Enable helm-based postgres. Without pv and pvc. Only for minikube and qa-tasks
+    # if false, will be used operator-based instance. And login and password will be created automaticaly.
+    enabled: &redisEnable true
+    auth:
+      enabled: false
+
+  ingress:
+    certManager:
+      enabled: false
+    jaeger:
+      enabled: true
+      basicAuth:
+        vault:
+          enabled: false
+
+  ## used only for minikube
+  secretDocker:
+    enabled: false
+  
+  ## used only for k8s with vault
+  vaultSecretDocker:
+    enabled: false
+
+  configMap:
+    name: "neoon-common-config"
+    data:
+      SCOPE_FORMAT: "pretty"
+      
+  geoserver_web:
+    enabled: 1
+
+  previewsPath:
+    private: "preview"
+    public: "shared-links"
+
+keycloak:
+  extraStartupArgs: "--spi-theme-static-max-age=-1 --spi-theme-cache-themes=false --spi-theme-cache-templates=false"
+  keycloakInit:
+    Keycloak:
+      SMTPServer:
+        VaultPassPath: ""
+    Users:
+      - Email: test@north.io
+        FirstName: Super
+        LastName: Duper
+        Password: "12345"
+        IsTemporaryPassword: false
+        IsAdmin: true
+        Enabled2FA: false
+    Clients:
+      PasswordGrantEnabled: true # Set to `true` for local development ONLY.
+
+  extraEnvVars:
+    - name: KEYCLOAK_PRODUCTION
+      value: "true"
+
+  smtp4dev:
+    enabled: false
+
+jaeger: 
+  persistence:
+    storageCapacity: 1Gi
+
+potreeconverter:
+  resources:
+    limits:
+      cpu: 2
+      memory: 4Gi
+    requests:
+      cpu: 1
+      memory: 512Mi
+
+psimage:
+  resources:
+    limits:
+      cpu: 2
+      memory: 4Gi
+    requests:
+      cpu: 1
+      memory: 512Mi
+
+libredwg:
+  resources:
+    limits:
+      cpu: 2
+      memory: 4Gi
+    requests:
+      cpu: 1
+      memory: 512Mi
+
+geoserver:
+  env:
+    GEOSERVER_EXPOSE_DEBUG_SYMBOLS: 'true'
