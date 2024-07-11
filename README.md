@@ -1,60 +1,71 @@
-## Installation script works for Debian/Ubuntu
-1. Install task package
+## Installation Script for Debian/Ubuntu
+
+### Step 1: Install Task Package
+To install the required task package, execute the following command:
 ```
     $ sudo apt-get install task
 ```
 
-2.  Install Neoon app in minikube from scratch (all in one)
-### Needs to set enviroment variables with pull credential to north.io NEXUS registry and run a task
+### Step 2: Install Neoon Application in Minikube from Scratch (All-in-One)
+Ensure to set the environment variables with your pull credentials for the north.io NEXUS registry, and then run the task:
 ```
     $ NEXUS_USERNAME=<name> NEXUS_PASSWORD='<password>' Version="0.3.2" task neoon:mini:from-scratch
 ```
 
-All needed packages will be installed in Linux.
-All needed services will be installed in minikube.
-Neoon-app will be installed.
+This will install all necessary packages and services in Minikube, along with the Neoon application.
 
-Default vars:
-          Domain=<URL>         Custom URL to run, defaults to https://neoon.local/local
-          EnvID=<EnvID>        Environment ID, default 'local'
-          Tenant=<Tenant>      Tenant, default 'local'
-          Version=<Version>    Version of the product to run, default '0.3.2'
+#### Default Variables:
+- `Domain=<URL>`: Custom URL to run, defaults to `https://neoon.local`
+- `EnvID=<EnvID>`: Environment ID, default is 'local'
+- `Tenant=<Tenant>`: Tenant, default is 'local'
+- `Version=<Version>`: Version of the product to run, default is '0.3.2'
 
-rootCA for domain will be generated and stored in directory ~/.local/share/mkcert/
-For connecting to VM from PC or Laptop - add host to /etc/hosts
-<IP-VM> neoon.local
+**Note:** The application will be accessible at `https://<Domain>/<EnvID>`. For default values, use `https://neoon.local/local`.
 
+A rootCA for the domain will be generated and stored in the directory `~/.local/share/mkcert/`. To connect to the VM from a PC or Laptop, add the following entry to your `/etc/hosts` file:
 
-3. Change Domain or Version
-    For changing a Domain, Version, EnvID - add them as ENV var before run a task
+```
+    <IP-VM> neoon.local
+```
+
+### Step 3: Change Domain or Version
+To change the Domain, Version, or EnvID, set them as environment variables before running the task:
 
 ```
     Version="0.3.3" task neoon:mini:run
 ```  
 
-4. Run an application by step
-    It is possible to run installation step by step:
+### Step 4: Step-by-Step Application Installation
+The installation process can be executed step-by-step:
+
 ```
     - task requried-packages:install 
     - task minikube:start
     - task infra:mini:install -- --username <username-NEXUS> --password <password-NEXUS>
     - task neoon:mini:run
 ```
-    (for install certain version)
-    - Version="0.2.2" task neoon:mini:run
-
-5. Upgrade Neoon Version 
-    - Version="0.3.2" task neoon:mini:upgrade
-
-6. Recreate Neoon-app  (Delete current app and install the new one instead)
-    - Version="0.3.2" task neoon:mini:recreate
+To install a specific version:
+```
+    Version="0.2.2" task neoon:mini:run
+```
 
 
-### Add rootCA to Laptop
-Configure the laptop to trust `rootCA.pem` certificate
-    - MacOS - [read this guide](https://support.securly.com/hc/en-us/articles/206058318-How-to-install-the-Securly-SSL-certificate-on-Mac-OSX-)
-    - Windows - [read this guide](https://www.ssls.com/knowledgebase/how-to-import-intermediate-and-root-certificates-via-mmc/)
+### Step 5: Upgrade Neoon Version
+To upgrade the Neoon application to a new version:
+ 
+    Version="0.3.2" task neoon:mini:upgrade
 
 
+### Step 6: Recreate Neoon Application
+To delete the current application and install a new one:
+```
+    Version="0.3.2" task neoon:mini:recreate
+```
+
+
+### Adding rootCA to Laptop
+To configure the laptop to trust the `rootCA.pem` certificate, follow these guides:
+- **MacOS**: [Guide to install the Securly SSL certificate on Mac OS X](https://support.securly.com/hc/en-us/articles/206058318-How-to-install-the-Securly-SSL-certificate-on-Mac-OSX-)
+- **Windows**: [Guide to import intermediate and root certificates via MMC](https://www.ssls.com/knowledgebase/how-to-import-intermediate-and-root-certificates-via-mmc/)
 
     
