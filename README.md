@@ -1,3 +1,4 @@
+
 ## Installation Script for Debian/Ubuntu
 
 ### Step 1: Install Task Package
@@ -33,7 +34,7 @@ To change the Domain, Version, or EnvID, set them as environment variables befor
 
 ```
     Version="0.3.3" task neoon:mini:run
-```  
+```
 
 ### Step 4: Step-by-Step Application Installation
 The installation process can be executed step-by-step:
@@ -49,12 +50,10 @@ To install a specific version:
     Version="0.2.2" task neoon:mini:run
 ```
 
-
 ### Step 5: Upgrade Neoon Version
 To upgrade the Neoon application to a new version:
  
     Version="0.3.2" task neoon:mini:upgrade
-
 
 ### Step 6: Recreate Neoon Application
 To delete the current application and install a new one:
@@ -62,10 +61,10 @@ To delete the current application and install a new one:
     Version="0.3.2" task neoon:mini:recreate
 ```
 
-
 ### Adding rootCA to Laptop
 To configure the laptop to trust the `rootCA.pem` certificate, follow these guides:
 - **MacOS**: [Guide to install the Securly SSL certificate on Mac OS X](https://support.securly.com/hc/en-us/articles/206058318-How-to-install-the-Securly-SSL-certificate-on-Mac-OSX-)
 - **Windows**: [Guide to import intermediate and root certificates via MMC](https://www.ssls.com/knowledgebase/how-to-import-intermediate-and-root-certificates-via-mmc/)
 
-    
+### Default Admin User
+If users are not explicitly provided via CLI to the `task` utility, the default user `joe@north.io` with password `12345` is added as an admin of a new deployment.
