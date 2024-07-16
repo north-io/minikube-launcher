@@ -67,4 +67,4 @@ To configure the laptop to trust the `rootCA.pem` certificate, follow these guid
 - **Windows**: [Guide to import intermediate and root certificates via MMC](https://www.ssls.com/knowledgebase/how-to-import-intermediate-and-root-certificates-via-mmc/)
 
 ### Default Admin User
-If users are not explicitly provided via CLI to the `task` utility, the default user `joe@north.io` with password `12345` is added as an admin of a new deployment.
+If users are not explicitly provided via CLI to the `task` utility, the default users are taken [from values-file](https://github.com/north-io/minikube-launcher/blob/95aefe9b9fbf7f525692a1c395570314737a36de/scripts/values/minikube-values.yaml#L125-L132).
